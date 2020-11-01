@@ -1,0 +1,44 @@
+project_name: compromised
+
+builds:
+  - main: ./cmd/compromised/main.go
+
+    binary: compromised
+
+    flags:
+      - -v
+      - -trimpath
+
+    ldflags:
+      - -s -w -X resenje.org/compromised.version={{.Version}} -X resenje.org/compromised.commit={{.ShortCommit}}
+
+    env:
+      - CGO_ENABLED=0
+
+    goos:
+      - darwin
+      - linux
+      - windows
+
+    goarch:
+      - amd64
+      - 386
+      - arm64
+      - arm
+
+    ignore:
+      - goos: darwin
+        goarch: 386
+      - goos: darwin
+        goarch: arm64
+      - goos: darwin
+        goarch: arm
+      - goos: windows
+        goarch: arm64
+      - goos: windows
+        goarch: arm
+
+archives:
+  - name_template: "{{ tolower .ProjectName }}-{{ tolower .Os }}-{{ tolower .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}"
+
+    format: binary
