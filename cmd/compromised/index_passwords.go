@@ -49,7 +49,7 @@ OPTIONS
 		os.Exit(2)
 	}
 
-	if err := filepasswords.Index(cli.Arg(0), cli.Arg(1), &filepasswords.IndexOptions{
+	if _, err := filepasswords.Index(cli.Arg(0), cli.Arg(1), &filepasswords.IndexOptions{
 		MinHashCount: *minHashCount,
 		ShardCount:   *shardCount,
 		HashCounting: filepasswords.HashCounting(*hashCounting),

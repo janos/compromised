@@ -50,8 +50,9 @@ var (
 
 // Index creates an indexed database of pwned passwords by reading hashes and
 // their counts from a textual file where hashes are ordered by their values
-// provided by https://haveibeenpwned.com/Passwords.
-func Index(inputFilename, outputDir string, o *IndexOptions) error {
+// provided by https://haveibeenpwned.com/Passwords. It returns the number of
+// saved hashes.
+func Index(inputFilename, outputDir string, o *IndexOptions) (uint64, error) {
 	if o == nil {
 		o = new(IndexOptions)
 	}
@@ -62,7 +63,7 @@ func Index(inputFilename, outputDir string, o *IndexOptions) error {
 		o.ShardCount = defaultShardCount
 	}
 	if !isShardCountValid(o.ShardCount) {
-		return errors.New("invalid shard count")
+		return 0, errors.New("invalid shard count")
 	}
 	if o.HashCounting == "" {
 		o.HashCounting = HashCountingExact
@@ -75,15 +76,15 @@ func Index(inputFilename, outputDir string, o *IndexOptions) error {
 	logFunc := o.LogFunc
 
 	if _, err := os.Stat(outputDir); !os.IsNotExist(err) {
-		return fmt.Errorf("database directory %s already exists", outputDir)
+		return 0, fmt.Errorf("database directory %s already exists", outputDir)
 	}
 
 	inputFile, err := os.Open(inputFilename)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return fmt.Errorf("input file %s does not exist", inputFilename)
+			return 0, fmt.Errorf("input file %s does not exist", inputFilename)
 		}
-		return fmt.Errorf("open input file: %w", err)
+		return 0, fmt.Errorf("open input file: %w", err)
 	}
 	defer inputFile.Close()
 
@@ -96,7 +97,7 @@ func Index(inputFilename, outputDir string, o *IndexOptions) error {
 
 	stat, err := inputFile.Stat()
 	if err != nil {
-		return fmt.Errorf("input file stat: %w", err)
+		return 0, fmt.Errorf("input file stat: %w", err)
 	}
 
 	inputFileSize := stat.Size()
@@ -112,12 +113,12 @@ func Index(inputFilename, outputDir string, o *IndexOptions) error {
 		fileCursor += uint64(len(s)) + 1
 
 		if s[:40] < prevLine {
-			return errors.New("input file is not sorted by hashes")
+			return 0, errors.New("input file is not sorted by hashes")
 		}
 
 		c, err := strconv.ParseUint(s[41:], 10, 64)
 		if err != nil {
-			return fmt.Errorf("convert count to integer: line %v: %v", i, err)
+			return 0, fmt.Errorf("convert count to integer: line %v: %v", i, err)
 		}
 
 		if c < o.MinHashCount {
@@ -150,12 +151,12 @@ func Index(inputFilename, outputDir string, o *IndexOptions) error {
 	case HashCountingNone:
 		countDecoder = "none"
 	default:
-		return fmt.Errorf("unsupported hash counter %s", o.HashCounting)
+		return 0, fmt.Errorf("unsupported hash counter %s", o.HashCounting)
 	}
 
 	dbSize, err := getDBSize(count, o.ShardCount, supportedHash, o.HashCounting)
 	if err != nil {
-		return fmt.Errorf("get db size: %w", err)
+		return 0, fmt.Errorf("get db size: %w", err)
 	}
 
 	logFunc("total hashes: %v", count)
@@ -163,12 +164,12 @@ func Index(inputFilename, outputDir string, o *IndexOptions) error {
 	logFunc("max hash count: %v", maxHashCount)
 
 	if err := os.MkdirAll(outputDir, 0777); err != nil {
-		return fmt.Errorf("create output dir %s: %w", outputDir, err)
+		return 0, fmt.Errorf("create output dir %s: %w", outputDir, err)
 	}
 
 	metaFile, err := os.Create(filepath.Join(outputDir, "db.json"))
 	if err != nil {
-		return fmt.Errorf("create db.json file: %w", err)
+		return 0, fmt.Errorf("create db.json file: %w", err)
 	}
 	defer metaFile.Close()
 
@@ -182,11 +183,11 @@ func Index(inputFilename, outputDir string, o *IndexOptions) error {
 		CountDecoder: countDecoder,
 	}, "", "    ")
 	if err != nil {
-		return fmt.Errorf("encode db.json: %w", err)
+		return 0, fmt.Errorf("encode db.json: %w", err)
 	}
 
 	if err := ioutil.WriteFile(filepath.Join(outputDir, "db.json"), b, 0666); err != nil {
-		return fmt.Errorf("write db.json: %w", err)
+		return 0, fmt.Errorf("write db.json: %w", err)
 	}
 
 	hashFileWriters := make(map[int]*bufio.Writer, o.ShardCount)
@@ -196,7 +197,7 @@ func Index(inputFilename, outputDir string, o *IndexOptions) error {
 			getShardFilename(i, o.ShardCount),
 		))
 		if err != nil {
-			return fmt.Errorf("create hashes file %v: %w", i, err)
+			return 0, fmt.Errorf("create hashes file %v: %w", i, err)
 		}
 		defer f.Close()
 
@@ -210,7 +211,7 @@ func Index(inputFilename, outputDir string, o *IndexOptions) error {
 	start = time.Now()
 
 	if _, err := inputFile.Seek(0, io.SeekStart); err != nil {
-		return fmt.Errorf("seek to the beginning of input file: %w", err)
+		return 0, fmt.Errorf("seek to the beginning of input file: %w", err)
 	}
 
 	var hashCountEncoder func(uint64) []byte
@@ -224,7 +225,7 @@ func Index(inputFilename, outputDir string, o *IndexOptions) error {
 	case HashCountingApprox:
 		e, err := approxcount.NewEncoder(uint64(maxHashCount))
 		if err != nil {
-			return fmt.Errorf("new approxcount %v: %w", maxHashCount, err)
+			return 0, fmt.Errorf("new approxcount %v: %w", maxHashCount, err)
 		}
 		hashCountEncoder = func(v uint64) []byte {
 			return []byte{e.Encode(v)}
@@ -234,12 +235,12 @@ func Index(inputFilename, outputDir string, o *IndexOptions) error {
 			return nil
 		}
 	default:
-		return fmt.Errorf("unsupported hash counter %s", o.HashCounting)
+		return 0, fmt.Errorf("unsupported hash counter %s", o.HashCounting)
 	}
 
 	indexFile, err := os.Create(filepath.Join(outputDir, "index.db"))
 	if err != nil {
-		return fmt.Errorf("create index file: %w", err)
+		return 0, fmt.Errorf("create index file: %w", err)
 	}
 	defer indexFile.Close()
 
@@ -253,7 +254,7 @@ func Index(inputFilename, outputDir string, o *IndexOptions) error {
 	var previousShard int
 	scanner = bufio.NewScanner(inputFile)
 	if _, err := indexFileWriter.Write(make([]byte, 4)); err != nil {
-		return fmt.Errorf("write index zero entry: %w", err)
+		return 0, fmt.Errorf("write index zero entry: %w", err)
 	}
 	buf := make([]byte, 4)
 	for scanner.Scan() {
@@ -263,23 +264,23 @@ func Index(inputFilename, outputDir string, o *IndexOptions) error {
 
 		count, err := strconv.ParseUint(s[41:], 10, 64)
 		if err != nil {
-			return fmt.Errorf("convert count to integer: line %v: %w", i, err)
+			return 0, fmt.Errorf("convert count to integer: line %v: %w", i, err)
 		}
 
 		prefix, err := hex.DecodeString(s[:6])
 		if err != nil {
-			return fmt.Errorf("decode prefix: line %v: %w", i, err)
+			return 0, fmt.Errorf("decode prefix: line %v: %w", i, err)
 		}
 
 		partition = uint24(prefix)
 		if partition != previousPartition {
 			if partition < previousPartition {
-				return fmt.Errorf("partition %v not after partition %v", partition, previousPartition)
+				return 0, fmt.Errorf("partition %v not after partition %v", partition, previousPartition)
 			}
 			for i := previousPartition; i < partition; i++ {
 				binary.BigEndian.PutUint32(buf, hashFileIndex)
 				if _, err := indexFileWriter.Write(buf); err != nil {
-					return fmt.Errorf("write index cursor: line %v: %w", i, err)
+					return 0, fmt.Errorf("write index cursor: line %v: %w", i, err)
 				}
 			}
 			previousPartition = partition
@@ -290,21 +291,21 @@ func Index(inputFilename, outputDir string, o *IndexOptions) error {
 			hashFileIndex = 0
 			previousShard = shard
 			if _, err := indexFileWriter.Write(make([]byte, 4)); err != nil {
-				return fmt.Errorf("write index zero entry: %w", err)
+				return 0, fmt.Errorf("write index zero entry: %w", err)
 			}
 		}
 
 		if count >= o.MinHashCount {
 			hash, err := hex.DecodeString(s[6:40])
 			if err != nil {
-				return fmt.Errorf("decode hash: line %v: %w", i, err)
+				return 0, fmt.Errorf("decode hash: line %v: %w", i, err)
 			}
 
 			if _, err := hashFileWriters[shard].Write(hash); err != nil {
-				return fmt.Errorf("write hash: line %v: %w", i, err)
+				return 0, fmt.Errorf("write hash: line %v: %w", i, err)
 			}
 			if _, err := hashFileWriters[shard].Write(hashCountEncoder(uint64(count))); err != nil {
-				return fmt.Errorf("write hash count: line %v: %w", i, err)
+				return 0, fmt.Errorf("write hash count: line %v: %w", i, err)
 			}
 
 			i++
@@ -321,18 +322,19 @@ func Index(inputFilename, outputDir string, o *IndexOptions) error {
 	}
 
 	if err := scanner.Err(); err != nil {
-		return fmt.Errorf("read input file: %w", err)
+		return 0, fmt.Errorf("read input file: %w", err)
 	}
 
 	binary.BigEndian.PutUint32(buf, uint32(hashFileIndex))
 	for i := partition; i <= maxUint24; i++ {
 		if _, err := indexFileWriter.Write(buf); err != nil {
-			return fmt.Errorf("write index end %v: %w", i, err)
+			return 0, fmt.Errorf("write index end %v: %w", i, err)
 		}
 	}
 
 	logFunc("saved %v hashes", i)
-	return nil
+
+	return i, nil
 }
 
 func getDBSize(count uint64, shardCount int, hash string, hashCounting HashCounting) (uint64, error) {

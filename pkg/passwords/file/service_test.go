@@ -16,6 +16,7 @@ import (
 	"strconv"
 	"testing"
 
+	"resenje.org/compromised/pkg/passwords"
 	"resenje.org/compromised/pkg/passwords/file"
 )
 
@@ -58,11 +59,8 @@ func newServiceTest(o *file.IndexOptions) func(t *testing.T) {
 		inputFilename := "testdata/pwned-passwords-sha1-ordered-by-hash.txt"
 		dbDir := filepath.Join(dir, "db")
 
-		if err := file.Index(
-			inputFilename,
-			dbDir,
-			o,
-		); err != nil {
+		count, err := file.Index(inputFilename, dbDir, o)
+		if err != nil {
 			t.Fatal(err)
 		}
 
@@ -72,63 +70,109 @@ func newServiceTest(o *file.IndexOptions) func(t *testing.T) {
 		}
 		defer s.Close()
 
-		inputFile, err := os.Open(inputFilename)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		scanner := bufio.NewScanner(inputFile)
-
-		for scanner.Scan() {
-			line := scanner.Text()
-
-			want, err := strconv.ParseUint(line[41:], 10, 64)
+		t.Run("hit", func(t *testing.T) {
+			inputFile, err := os.Open(inputFilename)
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			hash := line[:40]
-			got, err := s.IsPasswordCompromised(context.Background(), hexDecodeSHA1Sum(t, hash))
+			scanner := bufio.NewScanner(inputFile)
+			var i uint64
+			for scanner.Scan() {
+				line := scanner.Text()
+				i++
+
+				hash := line[:40]
+
+				want, err := strconv.ParseUint(line[41:], 10, 64)
+				if err != nil {
+					t.Fatal(err)
+				}
+
+				if o.HashCounting == file.HashCountingNone {
+					want = 1
+				}
+
+				var tolerance uint64
+				if o.HashCounting == file.HashCountingApprox {
+					tolerance = uint64(math.Round(float64(want) / 25))
+				}
+
+				if want < o.MinHashCount {
+					want = 0
+				}
+
+				isPasswordCompromised(t, s, hash, want, tolerance)
+			}
+			if i < count {
+				t.Errorf("validated %v hashes, expected at least %v", i, count)
+			}
+		})
+
+		t.Run("miss", func(t *testing.T) {
+			for _, hash := range []string{
+				"0000000000000000000000000000000000000000",
+				"7890abcdef0123456789abcdef0123456789abcd",
+				"ffffffffffffffffffffffffffffffffffffffff",
+			} {
+				isPasswordCompromised(t, s, hash, 0, 0)
+			}
+		})
+
+		t.Run("miss edges", func(t *testing.T) {
+			inputFile, err := os.Open(inputFilename)
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			if o.HashCounting == file.HashCountingNone {
-				want = 1
-			}
+			var prevLine string
 
-			if want < o.MinHashCount {
-				want = 0
-			}
+			scanner := bufio.NewScanner(inputFile)
+			var i uint64
+			for scanner.Scan() {
+				line := scanner.Text()
+				i++
 
-			switch o.HashCounting {
-			case file.HashCountingExact, file.HashCountingNone:
-				if got != want {
-					t.Errorf("hash %s: got count %v, want %v", hash, got, want)
+				if prevLine == "" {
+					prevLine = line
+					continue
 				}
-			case file.HashCountingApprox:
-				tolerance := uint64(math.Round(float64(want) / 25))
-				if got < want-tolerance || got > want+tolerance {
-					t.Errorf("hash %s: got count %v, want %v", hash, got, want)
+
+				partition := line[:6]
+				remainder := line[6:40]
+				prevPartition := prevLine[:6]
+				prevRemainder := prevLine[6:40]
+
+				if h := prevPartition + remainder; h != line[:40] {
+					isPasswordCompromised(t, s, h, 0, 0)
 				}
+				if h := partition + prevRemainder; h != prevLine[:40] {
+					isPasswordCompromised(t, s, h, 0, 0)
+				}
+
+				prevLine = line
 			}
+			if i < count {
+				t.Errorf("validated %v hashes, expected at least %v", i, count)
+			}
+		})
+	}
+}
+
+func isPasswordCompromised(t *testing.T, s passwords.Service, hash string, want, tolerance uint64) {
+	t.Helper()
+
+	got, err := s.IsPasswordCompromised(context.Background(), hexDecodeSHA1Sum(t, hash))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if tolerance > 0 {
+		if got < want-tolerance || got > want+tolerance {
+			t.Errorf("hash %s: got count %v, want %v with tolerance %v", hash, got, want, tolerance)
 		}
-
-		for _, hash := range []string{
-			"0000000000000000000000000000000000000000",
-			"7890abcdef0123456789abcdef0123456789abcd",
-			"ffffffffffffffffffffffffffffffffffffffff",
-		} {
-			var want uint64
-
-			got, err := s.IsPasswordCompromised(context.Background(), hexDecodeSHA1Sum(t, hash))
-			if err != nil {
-				t.Fatal(hash, err)
-			}
-
-			if got != want {
-				t.Errorf("hash %s: got count %v, want %v", hash, got, want)
-			}
+	} else {
+		if got != want {
+			t.Errorf("hash %s: got count %v, want %v", hash, got, want)
 		}
 	}
 }
