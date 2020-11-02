@@ -6,6 +6,7 @@
 package file
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/binary"
@@ -148,8 +149,9 @@ func (s *Service) IsPasswordCompromised(_ context.Context, sum [20]byte) (count 
 	buf = make([]byte, hashRemainderStep)
 	passwordHashRemainder := sum[partitionSize:]
 	hashRemaindersCursor = hashRemaindersStart
+	hashFileReader := bufio.NewReaderSize(hashFile, int(hashRemainderStep*10))
 	for hashRemaindersCursor < hashRemaindersEnd {
-		n, err := hashFile.Read(buf)
+		n, err := hashFileReader.Read(buf)
 		if err != nil {
 			return 0, fmt.Errorf("hashes %v read %v at %v: %w", shard, len(buf), hashRemaindersCursor, err)
 		}
