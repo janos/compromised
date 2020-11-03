@@ -106,6 +106,8 @@ func New(dir string) (*Service, error) {
 	}, nil
 }
 
+const maxReaderBufferSize = 4096
+
 // IsPasswordCompromised provides information if the password is compromised by
 // reading the index and hashes files.
 func (s *Service) IsPasswordCompromised(_ context.Context, sum [20]byte) (count uint64, err error) {
@@ -146,10 +148,15 @@ func (s *Service) IsPasswordCompromised(_ context.Context, sum [20]byte) (count 
 		return 0, fmt.Errorf("hashes out of range: %v instead %v", hashRemaindersCursor, hashRemaindersStart)
 	}
 
+	readerBufferSize := hashRemaindersEnd - hashRemaindersStart
+	if readerBufferSize > maxReaderBufferSize || readerBufferSize < hashRemainderStep {
+		readerBufferSize = maxReaderBufferSize
+	}
+
 	buf = make([]byte, hashRemainderStep)
 	passwordHashRemainder := sum[partitionSize:]
 	hashRemaindersCursor = hashRemaindersStart
-	hashFileReader := bufio.NewReaderSize(hashFile, int(hashRemainderStep*10))
+	hashFileReader := bufio.NewReaderSize(hashFile, int(readerBufferSize))
 	for hashRemaindersCursor < hashRemaindersEnd {
 		n, err := hashFileReader.Read(buf)
 		if err != nil {
