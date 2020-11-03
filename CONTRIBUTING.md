@@ -18,5 +18,5 @@ Any code which is complete, tested, reviewed, and merged to master can be releas
 1. Update the `version` number in `version.go`.
 2. Make a pull request with these changes.
 3. Once the pull request has been merged, visit [https://github.com/janos/compromised/releases](https://github.com/janos/compromised/release) and click `Draft a new release`.
-4. Update the `Tag version` and `Release title` field with the new Comprmised CLI version. Be sure the version has a `v` prefixed in both places, e.g. `v1.25.0`.
+4. Update the `Tag version` and `Release title` field with the new Compromised CLI version. Be sure the version has a `v` prefixed in both places, e.g. `v1.25.0`.
 5. Publish the release.
