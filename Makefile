@@ -5,7 +5,7 @@
 
 GO ?= go
 GOLANGCI_LINT ?= $$($(GO) env GOPATH)/bin/golangci-lint
-GOLANGCI_LINT_VERSION ?= v1.32.1
+GOLANGCI_LINT_VERSION ?= v1.32.2
 
 COMMIT ?= "$(shell git describe --long --dirty --always --match "" || true)"
 LDFLAGS ?= -s -w -X resenje.org/compromised.commit="$(COMMIT)"
