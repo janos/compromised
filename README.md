@@ -63,7 +63,7 @@ Descriptions of available commands and flags can be printed with:
 compromised -h
 ```
 
-```
+```console
 USAGE
 
   compromised [options...] [command]
@@ -108,7 +108,7 @@ And flags of the `index-passwords` command:
 compromised index-passwords -h
 ```
 
-```
+```console
 USAGE
 
   index-passwords [input filename] [output directory]
@@ -178,7 +178,7 @@ All available options and their default values can be printed with:
 compromised config
 ```
 
-```
+```console
 # compromised
 ---
 listen: :8080
@@ -294,7 +294,7 @@ First calculate the hash (use printf, not echo as echo is appending new line):
 printf 12345678 | sha1
 ```
 
-```
+```console
 7c222fb2927d828af22f592134e8932480637c0d
 ```
 
@@ -316,7 +316,7 @@ Of if you choose a very strong password:
 printf "my not compromised password" | sha1sum
 ```
 
-```
+```console
 d391477a0849048fc28e62850a25518d72afd013
 ```
 
@@ -406,6 +406,106 @@ func main() {
 	fmt.Println("this password has been compromised", c, "times")
 }
 ```
+
+## Database format
+
+Database stores SHA1 hashes in binary format and count values associated with them. A database is generated once and can be used only in read only mode.
+
+SHA1 hashes are 20 bytes long and they are split into 3 bytes long _partitions_ and 17 bytes long _remainders_. This allows to categorize hashes into 16777216 (count of all 3 bytes long integers) partitions.
+
+All hash _remainders_ are stored in multiple files called shards named _hashes-*.db_, where _*_ is a base36-encoded positive integer. Shard count _shardCount_ is configurable and can be set to 1, 2, 4, 8, 16, 32, 64, 128 or 256. Shard file number for a particular hash is determined by its first byte with formula _byte/256*shardCount_, which ensures that every shard contains the same number of _partitions_ distributed in a serial manner.
+
+Database files are _db.json_, _index.db_ and a series of _hashes-*.db_.
+
+File _db.json_ stores JSON-encoded meta information about the database.
+
+File _index.db_ stores information where a _partition_ of hashes with a common prefix can be found in a particular _hashes-*.db_ shard.
+
+Files _hashes-*.db_ store hash _remainders_ and count values associated for every hash.
+
+File _index.db_ stores a total of 16777216 + _shardCount_ 32bit integers in an array. Each representing either a shard start or a single partition. In other words, _index.db_ associates a number for every possible partition and that number is the index of partition's last hash in the shard file that it belongs to.
+
+### index.db structure
+
+Binary file _index.db_ consists of an array of big endian encoded 32bit unsigned integers. Each integer represents a start of a shard as value 0x00000000 or a last hash index in a particular partition in a particular shard file.
+
+```
+  4 bytes
++----------+
+
++----------+
+|0x00000000|  shard 0 start
++----------+
+|          |  shard 0, partition 0 end
++----------+
+|   ...    |
++----------+
+|          |  shard 0, partition n end
++----------+
+|   ...    |
++----------+
+|          |  shard 0, partition 16777216/shardCount end
++----------+
+|0x00000000|  shard 1 start
++----------+
+|          |  shard 1, partition (16777216/shardCount)+1 end
++----------+
+|   ...    |
++----------+
+|          |  shard 1, partition (16777216/shardCount)+n end
++----------+
+|   ...    |
++----------+
+|          |  shard 1, partition (16777216/shardCount)*2 end
++----------+
+|   ...    |
++----------+
+|          |  shard shardCount, partition 16777215 end
++----------+
+```
+
+This structure makes _index.db_ file length from 64MB and one byte, to 64MB and 256 bytes, depending on the _shardCount_ and length is irrelevant of the number of hashes.
+
+This structure is justified as every _partition_ contains at least one compromised password hash.
+
+Limitation is that every shard can contain up to 4,294,967,296 (unsigned 32 bit integer count), or with the maximal _shardCount_ of 256, the database can contain up to 1,099,511,627,776 hashes. These values are larger enough than the number of compromised hashes which is currently 572,611,621, to assume that it will support the growth of the database in the foreseeable future.
+
+### hashes-*.db structure
+
+Binary files _hashes-*.db_ consist of an array of two part elements. The first part is a fixed size 17 bytes long SHA1 _remainder_, the second part holds information about the count of the hash that this _remainder_ belongs to and it is fixed for every database but configurable as indexing stage based on the precision that is needed:
+
+- exact - big endian encoded 32 bit unsigned integers - _countSize_ is 4 bytes
+- approx - 8 bits long approximation value - _countSize_ is 1 byte
+- none - count value is not stored - _countSize_ is 0 bytes
+
+```
+  17 bytes    countSize
++-----------+-----------+
+
++-----------+-----------+
+| remainder |   count   |  hash 1
++-----------+-----------+
+| remainder |   count   |  ...
++-----------+-----------+
+| remainder |   count   |  hash n
++-----------+-----------+
+```
+
+### Performing a query
+
+To perform a query on the database is to get the information if a particular SHA1 hash is in the database and what count value is associated with it.
+
+The uniform distribution of SHA1 hashes allows the described database structure to be efficient in finding if the hash is present in the database or not.
+
+The query for a particular hash starts with identifying which _shard_ and _partition_ that hash should belong to.
+
+_Shard_ is calculated with formula _byte/256*shardCount_, where _byte_ is the first byte of the hash, _shardCount_ is read from a _db.json_ file and _256_ is the size of a byte (unsigned 8 bit integer) and it is also the maximal number of shards that is supported.
+
+Partition number is a binary decoded 24 bit unsigned integer from the first 3 bytes of the hash.
+
+File _index.db_ is read at the position of the partition number and the next one, getting the range of positions of remainders in that partition in the shard file.
+
+Shard number is used to identify which shard file should be read at the remainder positions. Every remainder should be read sequentially and check if it matches the hash last 17 bytes. At average, 34 check iterations should be made. _Partition_ size of 3 bytes is chosen as optimal for the number of hashes in pwned passwords hashes list, as it leaves in average of 34 hashes per partition. If the match is found, count is decoded from the rest of the second part of the hashes file element.
 
 ## Versioning
 
