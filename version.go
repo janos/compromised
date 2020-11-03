@@ -6,13 +6,13 @@
 package compromised
 
 var (
-	version = "0.1.0" // manually set semantic version number
+	version = "0.0.0" // automatically set on release
 	commit  string    // automatically set git commit hash
 
 	Version = func() string {
 		if commit != "" {
 			return version + "-" + commit
 		}
-		return version + "-dev"
+		return version
 	}()
 )

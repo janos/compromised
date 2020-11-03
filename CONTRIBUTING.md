@@ -5,7 +5,7 @@ We'd love to accept your patches and contributions to this project. There are ju
 1. Code should be `go fmt` formatted.
 2. Exported types, constants, variables and functions should be documented.
 3. Changes must be covered with tests.
-4. All tests must pass constantly `go test .`.
+4. All tests must pass constantly by running the `make` command.
 
 ## Versioning
 
@@ -15,8 +15,6 @@ Compromised service follows semantic versioning. New functionality should be acc
 
 Any code which is complete, tested, reviewed, and merged to master can be released.
 
-1. Update the `version` number in `version.go`.
-2. Make a pull request with these changes.
-3. Once the pull request has been merged, visit [https://github.com/janos/compromised/releases](https://github.com/janos/compromised/release) and click `Draft a new release`.
-4. Update the `Tag version` and `Release title` field with the new Compromised CLI version. Be sure the version has a `v` prefixed in both places, e.g. `v1.25.0`.
-5. Publish the release.
+Releasing a new version is automated with goreleaser and GitHub Actions.
+
+To release, only a tag with semantic version and a prefix `v` should be pushed to the repository on GitHub, e.g. `v1.25.0`.
