@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"resenje.org/x/application"
+	xconfig "resenje.org/x/config"
 
 	"resenje.org/compromised/cmd/compromised/config"
 )
@@ -26,14 +26,15 @@ func init() {
 	cfg.Register(config.Name, options)
 }
 
-var cfg = application.NewConfig(config.Name)
+var cfg = xconfig.New(config.Name)
 
-func configCmd() {
+func configCmd() error {
 	// Print loaded configuration.
 	fmt.Print(cfg.String())
+	return nil
 }
 
-func updateConfig() {
+func updateConfig() error {
 	if *configDir == "" {
 		*configDir = os.Getenv(strings.ToUpper(config.Name) + "_CONFIGDIR")
 	}
@@ -47,19 +48,9 @@ func updateConfig() {
 	if d, err := os.UserConfigDir(); err == nil {
 		cfg.Dirs = append(cfg.Dirs, filepath.Join(d, config.Name))
 	}
-	if err := cfg.Load(); err != nil {
-		fmt.Fprintln(os.Stderr, "Error: ", err)
-		os.Exit(2)
-	}
+	return cfg.Load()
 }
 
-func verifyAndPrepareConfig() {
-	if err := cfg.VerifyAndPrepare(); err != nil {
-		fmt.Fprintln(os.Stderr, "Error:", err)
-		if e, ok := err.(*application.HelpError); ok {
-			fmt.Println()
-			fmt.Println(e.Help)
-		}
-		os.Exit(2)
-	}
+func verifyAndPrepareConfig() error {
+	return cfg.VerifyAndPrepare()
 }

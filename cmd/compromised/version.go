@@ -12,5 +12,5 @@ import (
 )
 
 func versionCmd() {
-	fmt.Println(compromised.Version)
+	fmt.Println(compromised.Version())
 }

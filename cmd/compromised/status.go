@@ -7,19 +7,18 @@ package main
 
 import (
 	"fmt"
-	"os"
 
 	"resenje.org/daemon"
 )
 
-func statusCmd() {
+func statusCmd() error {
 	// Use daemon.Daemon to obtain status information and print it.
 	pid, err := (&daemon.Daemon{
 		PidFileName: options.PidFileName,
 	}).Status()
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "Not running:", err)
-		os.Exit(2)
+		return fmt.Errorf("not running: %w", err)
 	}
 	fmt.Println("Running: PID", pid)
+	return nil
 }

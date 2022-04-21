@@ -7,6 +7,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -26,15 +27,14 @@ import (
 	filepasswords "resenje.org/compromised/pkg/passwords/file"
 )
 
-func startCmd(daemon bool) {
+func startCmd(daemon bool) error {
 	if options.PasswordsDB == "" {
 		fmt.Fprintln(os.Stderr, `Passwords database is not configured.
 
 Download Pwned passwords SHA1 ordered by hash from https://haveibeenpwned.com/Passwords and execute index-database command to generate a database.
 
 Refer to https://resenje.org/compromised documentation.`)
-		os.Exit(2)
-		return
+		return errors.New("configuration error")
 	}
 
 	// Initialize the application with loaded options.
@@ -47,8 +47,7 @@ Refer to https://resenje.org/compromised documentation.`)
 			DaemonLogFileMode: options.DaemonLogFileMode.FileMode(),
 		})
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(2)
+		return err
 	}
 
 	// Functions that will be called in parallel on application shutdown.
@@ -89,34 +88,32 @@ Refer to https://resenje.org/compromised documentation.`)
 
 	// Log application version on start
 	app.Functions = append(app.Functions, func() (err error) {
-		logger.Infof("version: %v", compromised.Version)
+		logger.Infof("version: %v", compromised.Version())
 		return nil
 	})
 
 	// Recovery service provides unified way of logging and notifying
 	// panic events.
 	recoveryService := &recovery.Service{
-		Version: compromised.Version,
+		Version: compromised.Version(),
 	}
 
 	// Initialize server.
 	srv, err := server.New(server.Options{
 		Name:            config.Name,
-		Version:         compromised.Version,
+		Version:         compromised.Version(),
 		ListenInternal:  options.ListenInternal,
 		Logger:          logger,
 		RecoveryService: recoveryService,
 	})
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "server:", err)
-		os.Exit(2)
+		return fmt.Errorf("server: %w", err)
 	}
 	srv.WithMetrics(loggingCounter.Metrics()...)
 
 	passwordsService, err := filepasswords.New(options.PasswordsDB)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "passwords service:", err)
-		os.Exit(2)
+		return fmt.Errorf("passwords service: %w", err)
 	}
 	srv.WithMetrics(passwordsService.Metrics()...)
 	shutdownFuncs = append(shutdownFuncs, passwordsService.Close)
@@ -127,7 +124,7 @@ Refer to https://resenje.org/compromised documentation.`)
 	}
 
 	apiHandler, err := api.New(api.Options{
-		Version:          compromised.Version,
+		Version:          compromised.Version(),
 		Headers:          options.Headers,
 		Logger:           logger,
 		AccessLogger:     accessLogger,
@@ -135,16 +132,14 @@ Refer to https://resenje.org/compromised documentation.`)
 		PasswordsService: passwordsService,
 	})
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "api:", err)
-		os.Exit(2)
+		return fmt.Errorf("api: %w", err)
 	}
 	srv.WithMetrics(apiHandler.Metrics()...)
 	srvOptions.SetHandler(apiHandler)
 
 	// Configure main HTTP web server.
 	if err := srv.WithHTTP(srvOptions); err != nil {
-		fmt.Fprintln(os.Stderr, "configure", srvOptions.Name, "server:", err)
-		os.Exit(2)
+		return fmt.Errorf("configure %s server: %w", srvOptions.Name, err)
 	}
 
 	// Start web server.
@@ -189,7 +184,8 @@ Refer to https://resenje.org/compromised documentation.`)
 	// Finally start the server.
 	// This is a blocking function.
 	if err := app.Start(logger); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(2)
+		return err
 	}
+
+	return nil
 }

@@ -3,16 +3,15 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+//go:build windows
 // +build windows
 
 package main
 
 import (
-	"fmt"
-	"os"
+	"errors"
 )
 
-func debugDumpCmd() {
-	fmt.Fprintln(os.Stderr, "Debug dump is not supported on Windows")
-	os.Exit(2)
+func debugDumpCmd() error {
+	return errors.New("debug dump is not supported on Windows")
 }

@@ -45,7 +45,7 @@ func NewCompromisedOptions() *CompromisedOptions {
 		Listen:         ":8080",
 		ListenInternal: "127.0.0.1:6060",
 		Headers: map[string]string{
-			"Server":          Name + "/" + compromised.Version,
+			"Server":          Name + "/" + compromised.Version(),
 			"X-Frame-Options": "SAMEORIGIN",
 		},
 		PasswordsDB:          "",

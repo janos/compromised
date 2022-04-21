@@ -13,7 +13,7 @@ import (
 	filepasswords "resenje.org/compromised/pkg/passwords/file"
 )
 
-func indexPasswordsCmd() {
+func indexPasswordsCmd() error {
 	cli := flag.NewFlagSet("index-passwords", flag.ExitOnError)
 
 	minHashCount := cli.Uint64("min-hash-count", 1, "Skip hashes with counts lower than specified with this flag.")
@@ -34,27 +34,23 @@ OPTIONS
 	}
 
 	if err := cli.Parse(os.Args[2:]); err != nil {
-		cli.Usage()
-		os.Exit(2)
+		return err
 	}
 
 	if *help {
 		cli.Usage()
-		return
+		return nil
 	}
 
 	if cli.NArg() != 2 {
-		fmt.Fprintln(os.Stderr, "index-passwords command requires two arguments: input filename and output directory")
-		cli.Usage()
-		os.Exit(2)
+		return fmt.Errorf("index-passwords command requires two arguments: input filename and output directory")
 	}
 
-	if _, err := filepasswords.Index(cli.Arg(0), cli.Arg(1), &filepasswords.IndexOptions{
+	_, err := filepasswords.Index(cli.Arg(0), cli.Arg(1), &filepasswords.IndexOptions{
 		MinHashCount: *minHashCount,
 		ShardCount:   *shardCount,
 		HashCounting: filepasswords.HashCounting(*hashCounting),
-	}); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(2)
-	}
+	})
+
+	return err
 }

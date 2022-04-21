@@ -10,7 +10,7 @@ builds:
       - -trimpath
 
     ldflags:
-      - -s -w -X resenje.org/compromised.version={{.Version}} -X resenje.org/compromised.commit={{.ShortCommit}}
+      - -s -w -X resenje.org/compromised.version={{.Version}}
 
     env:
       - CGO_ENABLED=0
@@ -22,15 +22,13 @@ builds:
 
     goarch:
       - amd64
-      - 386
+      - '386'
       - arm64
       - arm
 
     ignore:
       - goos: darwin
-        goarch: 386
-      - goos: darwin
-        goarch: arm64
+        goarch: '386'
       - goos: darwin
         goarch: arm
       - goos: windows
@@ -39,6 +37,6 @@ builds:
         goarch: arm
 
 archives:
-  - name_template: "{{ tolower .ProjectName }}-{{ tolower .Os }}-{{ tolower .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}"
+  - name_template: "{{ tolower .ProjectName }}-{{ tolower .Os }}-{{ tolower .Arch }}{{ end }}"
 
     format: binary

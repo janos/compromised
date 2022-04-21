@@ -36,7 +36,7 @@ func newTestServer(t *testing.T, o testServerOptions) *http.Client {
 		Logger:       logger,
 		AccessLogger: logger,
 		RecoveryService: &recovery.Service{
-			Version: compromised.Version,
+			Version: compromised.Version(),
 		},
 		PasswordsService: o.PasswordsService,
 	})

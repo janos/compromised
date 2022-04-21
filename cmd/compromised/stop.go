@@ -7,19 +7,18 @@ package main
 
 import (
 	"fmt"
-	"os"
 
 	"resenje.org/daemon"
 	"resenje.org/x/application"
 )
 
-func stopCmd() {
+func stopCmd() error {
 	err := application.StopDaemon(daemon.Daemon{
 		PidFileName: options.PidFileName,
 	})
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "Error:", err)
-		os.Exit(2)
+		return err
 	}
 	fmt.Println("Stopped")
+	return nil
 }

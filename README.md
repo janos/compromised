@@ -34,6 +34,7 @@ You may need additional privileges to write to `/usr/local/bin`, but the file ca
 Supported operating systems and architectures:
 
 - macOS 64bit `darwin-amd64`
+- macOS 64bit `darwin-arm64`
 - Linux 64bit `linux-amd64`
 - Linux 32bit `linux-386`
 - Linux ARM 64bit `linux-arm64`
@@ -44,7 +45,7 @@ Supported operating systems and architectures:
 This tool is implemented using the [Go programming language](https://golang.org) and can also be installed by issuing a `go get` command:
 
 ```sh
-go get -u resenje.org/compromised/cmd/compromised
+go install resenje.org/compromised/cmd/compromised@latest
 ```
 
 ## Usage
@@ -129,7 +130,7 @@ OPTIONS
 Download Pwned passwords SHA1 ordered by hash 7z file from https://haveibeenpwned.com/Passwords. This file is several gigabytes long (version 6 is 10.1GB) so make sure that you have enough disk space.
 
 ```sh
-wget https://downloads.pwnedpasswords.com/passwords/pwned-passwords-sha1-ordered-by-hash-v6.7z
+wget https://downloads.pwnedpasswords.com/passwords/pwned-passwords-sha1-ordered-by-hash-v8.7z
 ```
 
 Extract a textual file from the downloaded 7z archive. This file is roughly twice in size of 7z archive that contains it, around 24G for version 6. Feel free to remove the 7z archive.
@@ -213,7 +214,7 @@ The service can be configured with environment variables as well. Variable names
 For variables in `compromised.yaml`, capitalize all letters, replace `-` with `_` and prepend `COMPROMISED_` prefix. For example, to set `passwords-db`, the environment variable is `COMPROMISED_PASSWORDS_DB`:
 
 ```sh
-COMPROMISED_PASSWORDS_DB=/path/to/passwrods-db compromised
+COMPROMISED_PASSWORDS_DB=/path/to/passwords-db compromised
 ```
 
 ### Starting the service
@@ -231,7 +232,7 @@ cat /etc/compromised/compromised.yaml
 ```
 
 ```yaml
-passwords-db: /data/storage/compromised/passwrods
+passwords-db: /data/storage/compromised/passwords
 ```
 
 To write logs to files on local filesystem:
@@ -241,7 +242,7 @@ cat /etc/compromised/compromised.yaml
 ```
 
 ```yaml
-passwords-db: /data/storage/compromised/passwrods
+passwords-db: /data/storage/compromised/passwords
 log-dir: /data/log/compromised
 ```
 

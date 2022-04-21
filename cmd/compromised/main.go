@@ -25,6 +25,13 @@ var (
 )
 
 func main() {
+	if err := execute(); err != nil {
+		fmt.Fprintln(os.Stderr, "Error:", err)
+		os.Exit(2)
+	}
+}
+
+func execute() error {
 	cli.Usage = func() {
 		fmt.Fprintf(os.Stderr, usage, os.Args[0])
 		cli.PrintDefaults()
@@ -32,50 +39,52 @@ func main() {
 
 	if err := cli.Parse(os.Args[1:]); err != nil {
 		helpCmd()
-		return
+		return err
 	}
 
 	cmd := cli.Arg(0)
 
 	if *help && cmd == "" {
 		helpCmd()
-		return
+		return nil
 	}
 
 	switch cmd {
 	case "index-passwords":
-		indexPasswordsCmd()
-		return
+		return indexPasswordsCmd()
 
 	case "version":
 		versionCmd()
-		return
-
+		return nil
 	}
 
-	updateConfig()
+	if err := updateConfig(); err != nil {
+		return err
+	}
 
 	switch cmd {
 	case "", "daemon":
-		verifyAndPrepareConfig()
-		startCmd(cmd == "daemon")
+		if err := verifyAndPrepareConfig(); err != nil {
+			return err
+		}
+		return startCmd(cmd == "daemon")
 
 	case "stop":
-		stopCmd()
+		return stopCmd()
 
 	case "status":
-		statusCmd()
+		return statusCmd()
 
 	case "debug-dump":
-		debugDumpCmd()
+		return debugDumpCmd()
 
 	case "config":
-		configCmd()
+		return configCmd()
 
 	case "index-passwords":
-		indexPasswordsCmd()
+		return indexPasswordsCmd()
 
 	default:
-		helpUnknownCmd(cmd)
+		return helpUnknownCmd(cmd)
 	}
 }

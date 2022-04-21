@@ -7,7 +7,6 @@ package main
 
 import (
 	"fmt"
-	"os"
 )
 
 var (
@@ -51,8 +50,6 @@ func helpCmd() {
 	cli.Usage()
 }
 
-func helpUnknownCmd(cmd string) {
-	fmt.Fprintln(os.Stderr, "unknown command:", cmd)
-	cli.Usage()
-	os.Exit(2)
+func helpUnknownCmd(cmd string) error {
+	return fmt.Errorf("unknown command: %s", cmd)
 }
