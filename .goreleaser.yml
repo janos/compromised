@@ -37,6 +37,6 @@ builds:
         goarch: arm
 
 archives:
-  - name_template: "{{ tolower .ProjectName }}-{{ tolower .Os }}-{{ tolower .Arch }}{{ end }}"
+  - name_template: "{{ tolower .ProjectName }}-{{ tolower .Os }}-{{ tolower .Arch }}"
 
     format: binary
