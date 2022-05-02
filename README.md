@@ -183,7 +183,7 @@ compromised config
 # compromised
 ---
 listen: :8080
-listen-internal: 127.0.0.1:6060
+listen-instrumentation: 127.0.0.1:6060
 headers:
   Server: compromised/0.1.0-6ed439e-dirty
   X-Frame-Options: SAMEORIGIN
@@ -331,19 +331,19 @@ curl http://localhost:8080/v1/passwords/d391477a0849048fc28e62850a25518d72afd013
 {"compromised":false}
 ```
 
-### Internal API
+### Instrumentation API
 
-Beside the main API, there is another API endpoint, by default available on port `6060` only on `localhost` which exposes some of the internal information about the service:
+Beside the main API, there is another API endpoint, by default available on port `6060` only on `localhost` which exposes some of the instrumentation information about the service:
 
 - Prometheus metrics `http://localhost:6060/metrics`
 - Most basic health check endpoint `http://localhost:6060/status`
 - Most basic JSON health check endpoint `http://localhost:6060/api/status`
 - Go pprof `http://localhost:6060/debug/pprof/`
 
-Internal API can be disabled with an empty value for `listen-internal` configuration option in `/etc/compromised/compromised.yaml`:
+Instrumentation API can be disabled with an empty value for `listen-instrumentation` configuration option in `/etc/compromised/compromised.yaml`:
 
 ```yaml
-listen-internal: ""
+listen-instrumentation: ""
 ```
 
 ## Using the Go library

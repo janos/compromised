@@ -100,11 +100,11 @@ Refer to https://resenje.org/compromised documentation.`)
 
 	// Initialize server.
 	srv, err := server.New(server.Options{
-		Name:            config.Name,
-		Version:         compromised.Version(),
-		ListenInternal:  options.ListenInternal,
-		Logger:          logger,
-		RecoveryService: recoveryService,
+		Name:                  config.Name,
+		Version:               compromised.Version(),
+		ListenInstrumentation: options.ListenInstrumentation,
+		Logger:                logger,
+		RecoveryService:       recoveryService,
 	})
 	if err != nil {
 		return fmt.Errorf("server: %w", err)

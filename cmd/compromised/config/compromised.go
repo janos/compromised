@@ -18,9 +18,9 @@ import (
 // CompromisedOptions defines parameters related to service's core functionality.
 type CompromisedOptions struct {
 	// HTTP
-	Listen         string            `json:"listen" yaml:"listen" envconfig:"LISTEN"`
-	ListenInternal string            `json:"listen-internal" yaml:"listen-internal" envconfig:"LISTEN_INTERNAL"`
-	Headers        map[string]string `json:"headers" yaml:"headers" envconfig:"HEADERS"`
+	Listen                string            `json:"listen" yaml:"listen" envconfig:"LISTEN"`
+	ListenInstrumentation string            `json:"listen-instrumentation" yaml:"listen-instrumentation" envconfig:"LISTEN_INSTRUMENTATION"`
+	Headers               map[string]string `json:"headers" yaml:"headers" envconfig:"HEADERS"`
 	// Passwords
 	PasswordsDB string `json:"passwords-db" yaml:"passwords-db" envconfig:"PASSWORDS_DB"`
 	// Logging
@@ -42,8 +42,8 @@ type CompromisedOptions struct {
 // NewCompromisedOptions initializes CompromisedOptions with default values.
 func NewCompromisedOptions() *CompromisedOptions {
 	return &CompromisedOptions{
-		Listen:         ":8080",
-		ListenInternal: "127.0.0.1:6060",
+		Listen:                ":8080",
+		ListenInstrumentation: "127.0.0.1:6060",
 		Headers: map[string]string{
 			"Server":          Name + "/" + compromised.Version(),
 			"X-Frame-Options": "SAMEORIGIN",
@@ -71,7 +71,7 @@ func (o *CompromisedOptions) VerifyAndPrepare() (err error) {
 		return
 	}
 	ln.Close()
-	ln, err = net.Listen("tcp", o.ListenInternal)
+	ln, err = net.Listen("tcp", o.ListenInstrumentation)
 	if err != nil {
 		return
 	}
