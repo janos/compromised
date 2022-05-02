@@ -126,6 +126,7 @@ Refer to https://resenje.org/compromised documentation.`)
 	apiHandler, err := api.New(api.Options{
 		Version:          compromised.Version(),
 		Headers:          options.Headers,
+		RealIPHeaderName: options.RealIPHeaderName,
 		Logger:           logger,
 		AccessLogger:     accessLogger,
 		RecoveryService:  recoveryService,

@@ -7,16 +7,53 @@ package api
 
 import (
 	"net/http"
-	"time"
+	"strings"
 
+	"github.com/felixge/httpsnoop"
 	"resenje.org/jsonhttp"
+	"resenje.org/logging"
 	"resenje.org/web"
-	accessLog "resenje.org/web/log/access"
 	"resenje.org/web/recovery"
 )
 
-func (s *server) accessLogHandler(h http.Handler) http.Handler {
-	return accessLog.NewHandler(h, s.AccessLogger)
+func (s *server) accessLogAndMetricsHandler(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		s.metrics.PageviewCount.Inc()
+		m := httpsnoop.CaptureMetrics(h, w, r)
+		referrer := r.Referer()
+		if referrer == "" {
+			referrer = "-"
+		}
+		userAgent := r.UserAgent()
+		if userAgent == "" {
+			userAgent = "-"
+		}
+		ips := []string{}
+		if v := r.Header.Get(s.RealIPHeaderName); v != "" {
+			ips = append(ips, v)
+		}
+		xips := "-"
+		if len(ips) > 0 {
+			xips = strings.Join(ips, ", ")
+		}
+		status := m.Code
+		var level logging.Level
+		switch {
+		case status >= 500:
+			level = logging.ERROR
+		case status >= 400:
+			level = logging.WARNING
+		case status >= 300:
+			level = logging.INFO
+		case status >= 200:
+			level = logging.INFO
+		default:
+			level = logging.DEBUG
+		}
+		s.AccessLogger.Logf(level, "%s \"%s\" \"%v %s %v\" %d %d %f \"%s\" \"%s\"", r.RemoteAddr, xips, r.Method, r.RequestURI, r.Proto, status, m.Written, m.Duration.Seconds(), referrer, userAgent)
+
+		s.metrics.ResponseDuration.Observe(m.Duration.Seconds())
+	})
 }
 
 func (s *server) jsonRecoveryHandler(h http.Handler) http.Handler {
@@ -25,15 +62,6 @@ func (s *server) jsonRecoveryHandler(h http.Handler) http.Handler {
 		recovery.WithLogFunc(s.Logger.Errorf),
 		recovery.WithPanicResponse(`{"message":"Internal Server Error","code":500}`, "application/json; charset=utf-8"),
 	)
-}
-
-func (s *server) pageviewMetricsHandler(h http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		start := time.Now()
-		s.metrics.PageviewCount.Inc()
-		h.ServeHTTP(w, r)
-		s.metrics.ResponseDuration.Observe(time.Since(start).Seconds())
-	})
 }
 
 func jsonMaxBodyBytesHandler(h http.Handler) http.Handler {

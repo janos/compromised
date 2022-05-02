@@ -32,7 +32,7 @@ func newRouter(s *server) http.Handler {
 	return web.ChainHandlers(
 		handlers.CompressHandler,
 		s.jsonRecoveryHandler,
-		s.accessLogHandler,
+		s.accessLogAndMetricsHandler,
 		func(h http.Handler) http.Handler {
 			return web.NewSetHeadersHandler(h, s.Headers)
 		},
@@ -51,7 +51,6 @@ func newV1Router(s *server) http.Handler {
 
 	return web.ChainHandlers(
 		jsonMaxBodyBytesHandler,
-		s.pageviewMetricsHandler,
 		web.NoCacheHeadersHandler,
 		web.FinalHandler(r),
 	)

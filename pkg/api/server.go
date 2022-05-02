@@ -29,8 +29,9 @@ type server struct {
 
 // Options structure contains optional properties for the Handler.
 type Options struct {
-	Version string
-	Headers map[string]string
+	Version          string
+	Headers          map[string]string
+	RealIPHeaderName string
 
 	Logger       *logging.Logger
 	AccessLogger *logging.Logger

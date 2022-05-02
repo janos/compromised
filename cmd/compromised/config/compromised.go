@@ -21,6 +21,7 @@ type CompromisedOptions struct {
 	Listen                string            `json:"listen" yaml:"listen" envconfig:"LISTEN"`
 	ListenInstrumentation string            `json:"listen-instrumentation" yaml:"listen-instrumentation" envconfig:"LISTEN_INSTRUMENTATION"`
 	Headers               map[string]string `json:"headers" yaml:"headers" envconfig:"HEADERS"`
+	RealIPHeaderName      string            `json:"real-ip-header-name" yaml:"real-ip-header-name" envconfig:"REAL_IP_HEADER_NAME"`
 	// Passwords
 	PasswordsDB string `json:"passwords-db" yaml:"passwords-db" envconfig:"PASSWORDS_DB"`
 	// Logging
@@ -48,6 +49,7 @@ func NewCompromisedOptions() *CompromisedOptions {
 			"Server":          Name + "/" + compromised.Version(),
 			"X-Frame-Options": "SAMEORIGIN",
 		},
+		RealIPHeaderName:     "X-Real-IP",
 		PasswordsDB:          "",
 		LogDir:               "",
 		LogLevel:             logging.DEBUG,
