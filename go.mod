@@ -12,7 +12,7 @@ require (
 	resenje.org/marshal v0.1.1
 	resenje.org/recovery v0.1.1
 	resenje.org/web v0.8.0
-	resenje.org/x v0.5.1
+	resenje.org/x v0.5.2
 )
 
 require (
