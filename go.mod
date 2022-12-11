@@ -12,7 +12,7 @@ require (
 	resenje.org/marshal v0.1.1
 	resenje.org/recovery v0.1.1
 	resenje.org/web v0.8.0
-	resenje.org/x v0.5.2
+	resenje.org/x v0.5.3
 )
 
 require (
@@ -33,7 +33,7 @@ require (
 	google.golang.org/protobuf v1.28.1 // indirect
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 	gopkg.in/mail.v2 v2.3.1 // indirect
-	gopkg.in/yaml.v2 v2.4.0 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 	resenje.org/email v0.1.3 // indirect
 	resenje.org/iostuff v0.1.3 // indirect
 )
