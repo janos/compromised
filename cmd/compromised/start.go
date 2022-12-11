@@ -54,37 +54,6 @@ Refer to https://resenje.org/compromised documentation.`)
 	var shutdownFuncs []func() error
 
 	// Setup logging.
-	// loggers := application.NewLoggers(
-	// 	application.WithForcedWriter(func() io.Writer {
-	// 		if options.LogDir == "" {
-	// 			return os.Stderr
-	// 		}
-	// 		return nil
-	// 	}()),
-	// )
-	// loggingCounter := loggingpromethues.NewCounter(&loggingpromethues.CounterOptions{
-	// 	Namespace: metrics.Namespace,
-	// })
-	// logger := loggers.NewLogger("default", options.LogLevel,
-	// 	application.NewTimedFileHandler(options.LogDir, config.Name),
-	// 	application.NewSyslogHandler(
-	// 		options.SyslogFacility,
-	// 		options.SyslogTag,
-	// 		options.SyslogNetwork,
-	// 		options.SyslogAddress,
-	// 	),
-	// 	loggingpromethues.NewHandler(loggingCounter, options.LogLevel),
-	// )
-	// application.SetStdLogger()
-	// accessLogger := loggers.NewLogger("access", options.AccessLogLevel,
-	// 	application.NewTimedFileHandler(options.LogDir, "access"),
-	// 	application.NewSyslogHandler(
-	// 		options.AccessSyslogFacility,
-	// 		options.AccessSyslogTag,
-	// 		options.SyslogNetwork,
-	// 		options.SyslogAddress,
-	// 	),
-	// )
 
 	loggingMetrics := logging.NewMetrics(&logging.MetricsOptions{
 		Namespace: metrics.Namespace,
