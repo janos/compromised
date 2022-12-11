@@ -15,6 +15,7 @@ type metrics struct {
 	// must be exported to register them automatically using reflect
 	PageviewCount    prometheus.Counter
 	ResponseDuration prometheus.Histogram
+	ResponseCount    *prometheus.CounterVec
 }
 
 func newMetrics() metrics {
@@ -34,6 +35,12 @@ func newMetrics() metrics {
 			Help:      "Histogram of API response durations.",
 			Buckets:   []float64{0.01, 0.1, 0.25, 0.5, 1, 2.5, 5, 10},
 		}),
+		ResponseCount: prometheus.NewCounterVec(prometheus.CounterOpts{
+			Namespace: m.Namespace,
+			Subsystem: subsystem,
+			Name:      "response_code_count",
+			Help:      "Number of responses by status codes from frontend router.",
+		}, []string{"code"}),
 	}
 }
 func (s *server) Metrics() (cs []prometheus.Collector) {

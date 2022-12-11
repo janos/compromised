@@ -6,7 +6,7 @@
 package api_test
 
 import (
-	"io/ioutil"
+	"io"
 	"net/http"
 	"testing"
 
@@ -31,7 +31,7 @@ func TestRobotsTxt(t *testing.T) {
 	}
 	defer resp.Body.Close()
 
-	b, err := ioutil.ReadAll(resp.Body)
+	b, err := io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatal(err)
 	}

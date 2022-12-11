@@ -11,7 +11,6 @@ import (
 	"path/filepath"
 
 	"resenje.org/compromised"
-	"resenje.org/logging"
 	"resenje.org/marshal"
 )
 
@@ -25,15 +24,7 @@ type CompromisedOptions struct {
 	// Passwords
 	PasswordsDB string `json:"passwords-db" yaml:"passwords-db" envconfig:"PASSWORDS_DB"`
 	// Logging
-	LogDir               string                 `json:"log-dir" yaml:"log-dir" envconfig:"LOG_DIR"`
-	LogLevel             logging.Level          `json:"log-level" yaml:"log-level" envconfig:"LOG_LEVEL"`
-	SyslogFacility       logging.SyslogFacility `json:"syslog-facility" yaml:"syslog-facility" envconfig:"SYSLOG_FACILITY"`
-	SyslogTag            string                 `json:"syslog-tag" yaml:"syslog-tag" envconfig:"SYSLOG_TAG"`
-	SyslogNetwork        string                 `json:"syslog-network" yaml:"syslog-network" envconfig:"SYSLOG_NETWORK"`
-	SyslogAddress        string                 `json:"syslog-address" yaml:"syslog-address" envconfig:"SYSLOG_ADDRESS"`
-	AccessLogLevel       logging.Level          `json:"access-log-level" yaml:"access-log-level" envconfig:"ACCESS_LOG_LEVEL"`
-	AccessSyslogFacility logging.SyslogFacility `json:"access-syslog-facility" yaml:"access-syslog-facility" envconfig:"ACCESS_SYSLOG_FACILITY"`
-	AccessSyslogTag      string                 `json:"access-syslog-tag" yaml:"access-syslog-tag" envconfig:"ACCESS_SYSLOG_TAG"`
+	LogDir string `json:"log-dir" yaml:"log-dir" envconfig:"LOG_DIR"`
 	// Daemon
 	DaemonLogFileName string       `json:"daemon-log-file" yaml:"daemon-log-file" envconfig:"DAEMON_LOG_FILE"`
 	DaemonLogFileMode marshal.Mode `json:"daemon-log-file-mode" yaml:"daemon-log-file-mode" envconfig:"DAEMON_LOG_FILE_MODE"`
@@ -49,20 +40,12 @@ func NewCompromisedOptions() *CompromisedOptions {
 			"Server":          Name + "/" + compromised.Version(),
 			"X-Frame-Options": "SAMEORIGIN",
 		},
-		RealIPHeaderName:     "X-Real-IP",
-		PasswordsDB:          "",
-		LogDir:               "",
-		LogLevel:             logging.DEBUG,
-		SyslogFacility:       "",
-		SyslogTag:            Name,
-		SyslogNetwork:        "",
-		SyslogAddress:        "",
-		AccessLogLevel:       logging.DEBUG,
-		AccessSyslogFacility: "",
-		AccessSyslogTag:      Name + "-access",
-		DaemonLogFileName:    "daemon.log",
-		DaemonLogFileMode:    0644,
-		PidFileName:          filepath.Join(os.TempDir(), Name+".pid"),
+		RealIPHeaderName:  "X-Real-IP",
+		PasswordsDB:       "",
+		LogDir:            "",
+		DaemonLogFileName: "daemon.log",
+		DaemonLogFileMode: 0644,
+		PidFileName:       filepath.Join(os.TempDir(), Name+".pid"),
 	}
 }
 

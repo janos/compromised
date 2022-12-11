@@ -37,7 +37,7 @@ func (s *server) passwordHandler(w http.ResponseWriter, r *http.Request) {
 
 	count, err := s.PasswordsService.IsPasswordCompromised(r.Context(), sum)
 	if err != nil {
-		s.Logger.Errorf("api password handler: is password %x compromised: %v", sum, err)
+		s.Logger.Error("api password handler: is password compromised", err, "hash", hash)
 		jsonhttp.InternalServerError(w, nil)
 		return
 	}

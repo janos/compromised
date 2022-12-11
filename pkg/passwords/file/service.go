@@ -14,7 +14,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -38,7 +37,7 @@ type Service struct {
 // New creates a new instance of Service by opening database files in a provided
 // directory location on the filesystem.
 func New(dir string) (*Service, error) {
-	b, err := ioutil.ReadFile(filepath.Join(dir, "db.json"))
+	b, err := os.ReadFile(filepath.Join(dir, "db.json"))
 	if err != nil {
 		return nil, err
 	}

@@ -7,59 +7,33 @@ package api
 
 import (
 	"net/http"
-	"strings"
+	"strconv"
+	"time"
 
-	"github.com/felixge/httpsnoop"
 	"resenje.org/jsonhttp"
-	"resenje.org/logging"
 	"resenje.org/web"
+	"resenje.org/web/logging"
 	"resenje.org/web/recovery"
 )
 
 func (s *server) accessLogAndMetricsHandler(h http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		s.metrics.PageviewCount.Inc()
-		m := httpsnoop.CaptureMetrics(h, w, r)
-		referrer := r.Referer()
-		if referrer == "" {
-			referrer = "-"
-		}
-		userAgent := r.UserAgent()
-		if userAgent == "" {
-			userAgent = "-"
-		}
-		ips := []string{}
-		if v := r.Header.Get(s.RealIPHeaderName); v != "" {
-			ips = append(ips, v)
-		}
-		xips := "-"
-		if len(ips) > 0 {
-			xips = strings.Join(ips, ", ")
-		}
-		status := m.Code
-		var level logging.Level
-		switch {
-		case status >= 500:
-			level = logging.ERROR
-		case status >= 400:
-			level = logging.WARNING
-		case status >= 300:
-			level = logging.INFO
-		case status >= 200:
-			level = logging.INFO
-		default:
-			level = logging.DEBUG
-		}
-		s.AccessLogger.Logf(level, "%s \"%s\" \"%v %s %v\" %d %d %f \"%s\" \"%s\"", r.RemoteAddr, xips, r.Method, r.RequestURI, r.Proto, status, m.Written, m.Duration.Seconds(), referrer, userAgent)
-
-		s.metrics.ResponseDuration.Observe(m.Duration.Seconds())
+	return logging.NewAccessLogHandler(h, s.AccessLogger, &logging.AccessLogOptions{
+		RealIPHeaderName: s.RealIPHeaderName,
+		PreHook: func(_ http.ResponseWriter, _ *http.Request) {
+			s.metrics.PageviewCount.Inc()
+		},
+		PostHook: func(code int, duration time.Duration, _ int64) {
+			s.metrics.ResponseDuration.Observe(duration.Seconds())
+			s.metrics.ResponseCount.WithLabelValues(strconv.Itoa(code)).Inc()
+		},
+		LogMessage: "api access",
 	})
 }
 
 func (s *server) jsonRecoveryHandler(h http.Handler) http.Handler {
 	return recovery.New(h,
 		recovery.WithLabel(s.Version),
-		recovery.WithLogFunc(s.Logger.Errorf),
+		recovery.WithLogger(s.Logger),
 		recovery.WithPanicResponse(`{"message":"Internal Server Error","code":500}`, "application/json; charset=utf-8"),
 	)
 }

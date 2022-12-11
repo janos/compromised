@@ -9,8 +9,8 @@ import (
 	"net/http"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"golang.org/x/exp/slog"
 	"resenje.org/compromised/pkg/passwords"
-	"resenje.org/logging"
 	"resenje.org/recovery"
 )
 
@@ -33,8 +33,8 @@ type Options struct {
 	Headers          map[string]string
 	RealIPHeaderName string
 
-	Logger       *logging.Logger
-	AccessLogger *logging.Logger
+	Logger       *slog.Logger
+	AccessLogger *slog.Logger
 
 	RecoveryService *recovery.Service
 

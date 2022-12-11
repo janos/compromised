@@ -11,7 +11,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
@@ -126,7 +125,7 @@ func drain(r io.ReadCloser) {
 			_ = recover()
 		}()
 
-		_, _ = io.Copy(ioutil.Discard, r)
+		_, _ = io.Copy(io.Discard, r)
 		_ = r.Close()
 	}()
 }

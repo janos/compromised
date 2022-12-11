@@ -9,16 +9,15 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"testing"
 
+	"golang.org/x/exp/slog"
 	"resenje.org/compromised"
 	"resenje.org/compromised/pkg/api"
 	"resenje.org/compromised/pkg/passwords"
-	"resenje.org/logging"
 	"resenje.org/recovery"
 	"resenje.org/web"
 )
@@ -29,7 +28,7 @@ type testServerOptions struct {
 
 func newTestServer(t *testing.T, o testServerOptions) *http.Client {
 	version := "0.1.0-test"
-	logger, _ := logging.GetLogger("default")
+	logger := slog.Default()
 
 	s, err := api.New(api.Options{
 		Version:      version,
@@ -92,7 +91,7 @@ func testResponseDirect(t *testing.T, client *http.Client, method, url string, b
 		t.Fatalf("got response status %s, want %v %s", resp.Status, responseCode, http.StatusText(responseCode))
 	}
 
-	gotBytes, err := ioutil.ReadAll(resp.Body)
+	gotBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatal(err)
 	}

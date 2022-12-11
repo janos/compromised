@@ -13,7 +13,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -186,7 +185,7 @@ func Index(inputFilename, outputDir string, o *IndexOptions) (uint64, error) {
 		return 0, fmt.Errorf("encode db.json: %w", err)
 	}
 
-	if err := ioutil.WriteFile(filepath.Join(outputDir, "db.json"), b, 0666); err != nil {
+	if err := os.WriteFile(filepath.Join(outputDir, "db.json"), b, 0666); err != nil {
 		return 0, fmt.Errorf("write db.json: %w", err)
 	}
 

@@ -9,14 +9,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"sync"
 	"syscall"
 	"time"
 
-	loggingpromethues "resenje.org/logging/prometheus"
+	"golang.org/x/exp/slog"
 	"resenje.org/recovery"
+	"resenje.org/web/logging"
 	"resenje.org/web/server"
 	"resenje.org/x/application"
 
@@ -54,41 +54,62 @@ Refer to https://resenje.org/compromised documentation.`)
 	var shutdownFuncs []func() error
 
 	// Setup logging.
-	loggers := application.NewLoggers(
-		application.WithForcedWriter(func() io.Writer {
-			if options.LogDir == "" {
-				return os.Stderr
-			}
-			return nil
-		}()),
-	)
-	loggingCounter := loggingpromethues.NewCounter(&loggingpromethues.CounterOptions{
+	// loggers := application.NewLoggers(
+	// 	application.WithForcedWriter(func() io.Writer {
+	// 		if options.LogDir == "" {
+	// 			return os.Stderr
+	// 		}
+	// 		return nil
+	// 	}()),
+	// )
+	// loggingCounter := loggingpromethues.NewCounter(&loggingpromethues.CounterOptions{
+	// 	Namespace: metrics.Namespace,
+	// })
+	// logger := loggers.NewLogger("default", options.LogLevel,
+	// 	application.NewTimedFileHandler(options.LogDir, config.Name),
+	// 	application.NewSyslogHandler(
+	// 		options.SyslogFacility,
+	// 		options.SyslogTag,
+	// 		options.SyslogNetwork,
+	// 		options.SyslogAddress,
+	// 	),
+	// 	loggingpromethues.NewHandler(loggingCounter, options.LogLevel),
+	// )
+	// application.SetStdLogger()
+	// accessLogger := loggers.NewLogger("access", options.AccessLogLevel,
+	// 	application.NewTimedFileHandler(options.LogDir, "access"),
+	// 	application.NewSyslogHandler(
+	// 		options.AccessSyslogFacility,
+	// 		options.AccessSyslogTag,
+	// 		options.SyslogNetwork,
+	// 		options.SyslogAddress,
+	// 	),
+	// )
+
+	loggingMetrics := logging.NewMetrics(&logging.MetricsOptions{
 		Namespace: metrics.Namespace,
 	})
-	logger := loggers.NewLogger("default", options.LogLevel,
-		application.NewTimedFileHandler(options.LogDir, config.Name),
-		application.NewSyslogHandler(
-			options.SyslogFacility,
-			options.SyslogTag,
-			options.SyslogNetwork,
-			options.SyslogAddress,
-		),
-		loggingpromethues.NewHandler(loggingCounter, options.LogLevel),
-	)
-	application.SetStdLogger()
-	accessLogger := loggers.NewLogger("access", options.AccessLogLevel,
-		application.NewTimedFileHandler(options.LogDir, "access"),
-		application.NewSyslogHandler(
-			options.AccessSyslogFacility,
-			options.AccessSyslogTag,
-			options.SyslogNetwork,
-			options.SyslogAddress,
-		),
-	)
+
+	loggerWriter := logging.ApplicationLogWriteCloser(options.LogDir, config.Name, os.Stderr)
+	defer loggerWriter.Close()
+	logger := slog.New(slog.HandlerOptions{
+		ReplaceAttr: func(a slog.Attr) slog.Attr {
+			if a.Key == slog.LevelKey {
+				loggingMetrics.Inc(a.Value.Any().(slog.Level))
+			}
+			return a
+		},
+	}.NewTextHandler(loggerWriter))
+
+	slog.SetDefault(logger)
+
+	accessLoggerWriter := logging.ApplicationLogWriteCloser(options.LogDir, "access", os.Stderr)
+	defer accessLoggerWriter.Close()
+	accessLogger := slog.New(slog.NewTextHandler(accessLoggerWriter))
 
 	// Log application version on start
 	app.Functions = append(app.Functions, func() (err error) {
-		logger.Infof("version: %v", compromised.Version())
+		logger.Info("start", "version", compromised.Version())
 		return nil
 	})
 
@@ -109,7 +130,7 @@ Refer to https://resenje.org/compromised documentation.`)
 	if err != nil {
 		return fmt.Errorf("server: %w", err)
 	}
-	srv.WithMetrics(loggingCounter.Metrics()...)
+	srv.WithMetrics(loggingMetrics.Metrics()...)
 
 	passwordsService, err := filepasswords.New(options.PasswordsDB)
 	if err != nil {
@@ -160,7 +181,7 @@ Refer to https://resenje.org/compromised documentation.`)
 			go func(shutdown func() error) {
 				defer wg.Done()
 				if err := shutdown(); err != nil {
-					logger.Errorf("shutting down: %v", err)
+					logger.Error("shutdown", err)
 				}
 			}(shutdown)
 		}
